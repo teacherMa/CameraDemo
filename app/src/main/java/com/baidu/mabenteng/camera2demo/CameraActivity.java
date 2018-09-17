@@ -10,8 +10,11 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.baidu.mabenteng.camera2demo.utils.App;
 
@@ -34,6 +37,7 @@ public class CameraActivity extends AppCompatActivity implements SurfaceHolder.C
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 480;
+    private boolean mIsRecord = false;
 
     public static Intent getJumpIntent(Context context) {
         return new Intent(context, CameraActivity.class);
@@ -53,10 +57,18 @@ public class CameraActivity extends AppCompatActivity implements SurfaceHolder.C
         SurfaceView surfaceView = findViewById(R.id.camera_view);
         surfaceView.getHolder().addCallback(this);
 
-        findViewById(R.id.start).setOnClickListener(new View.OnClickListener() {
+        final TextView start = findViewById(R.id.start);
+
+        start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startRecord();
+                if (mIsRecord) {
+                    stopRecord();
+                    start.setText("START");
+                } else {
+                    startRecord();
+                    start.setText("STOP");
+                }
             }
         });
     }
@@ -131,17 +143,27 @@ public class CameraActivity extends AppCompatActivity implements SurfaceHolder.C
 
         try {
             mMediaRecorder.prepare();
+            mMediaRecorder.start();
         } catch (IOException e) {
             e.printStackTrace();
+            mIsRecord = false;
+            return;
         }
-        mMediaRecorder.start();
+        mIsRecord = true;
+        Toast.makeText(CameraActivity.this, "开始录制", Toast.LENGTH_LONG).show();
+    }
 
+    private void stopRecord() {
+        mMediaRecorder.stop();
+        mCamera.release();
+        Toast.makeText(CameraActivity.this, "存储在" + PATH + "/camera1.mp4", Toast.LENGTH_LONG).show();
+        mIsRecord = false;
     }
 
     private File ensureFile() {
         String path = PATH;
-        path = path + "/.camera1.mp4";
-        File file = new File(PATH);
+        path = path + "/camera1.mp4";
+        File file = new File(path);
         if (!file.exists()) {
             file.getParentFile().mkdir();
             try {
