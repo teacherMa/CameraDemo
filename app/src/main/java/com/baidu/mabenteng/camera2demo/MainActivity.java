@@ -39,20 +39,22 @@ public class MainActivity extends AppCompatActivity {
         return MainActivity.this.checkSelfPermission(Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED
                 && MainActivity.this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED
+                && MainActivity.this.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestPermission(int requestCode) {
         MainActivity.this.requestPermissions(
                 new String[]{Manifest.permission.CAMERA,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.RECORD_AUDIO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE},
                 requestCode);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (grantResults.length != 1) {
+        if (grantResults.length <= 0) {
             return;
         }
         if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {

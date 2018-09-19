@@ -1,19 +1,11 @@
 package com.baidu.mabenteng.camera2demo.customview;
 
+import android.annotation.SuppressLint;
 import android.view.TextureView;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -22,11 +14,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.Image;
-import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Environment;
@@ -34,7 +22,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
-import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -44,19 +31,12 @@ import android.view.Surface;
 import android.widget.Toast;
 
 import com.baidu.mabenteng.camera2demo.utils.App;
-import com.baidu.mabenteng.camera2demo.utils.BitmapUtils;
-import com.baidu.mabenteng.camera2demo.utils.ImageUtil;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
@@ -217,7 +197,7 @@ public class Camera2Preview extends TextureView {
     //相机连接状态回掉
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
-        public void onOpened(CameraDevice camera) {
+        public void onOpened(@NonNull CameraDevice camera) {
             //This is called when the camera is open
             Log.e(TAG, "onOpened");
             mCameraDevice = camera;
@@ -225,12 +205,12 @@ public class Camera2Preview extends TextureView {
         }
 
         @Override
-        public void onDisconnected(CameraDevice camera) {
+        public void onDisconnected(@NonNull CameraDevice camera) {
             mCameraDevice.close();
         }
 
         @Override
-        public void onError(CameraDevice camera, int error) {
+        public void onError(@NonNull CameraDevice camera, int error) {
             mCameraDevice.close();
             mCameraDevice = null;
         }
@@ -301,13 +281,11 @@ public class Camera2Preview extends TextureView {
             //设置请求的结果返回到到Surface上
             mPreviewRequestBuilder.addTarget(surface);
 
-
-            mPreviewRequestBuilder.addTarget(mImageReader.getSurface());
             //创建MediaRecord
             mMediaRecorder = new MediaRecorder();
 
             //创建CaptureSession对象
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+            mCameraDevice.createCaptureSession(Collections.singletonList(surface), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     //The camera is already closed
@@ -334,6 +312,7 @@ public class Camera2Preview extends TextureView {
     /**
      * 打开相机
      */
+    @SuppressLint("MissingPermission")
     private void setupCamera(int previewWidth, int previewHeight) {
         //获取CameraManager对象
         Log.e(TAG, "is camera open");
@@ -357,11 +336,6 @@ public class Camera2Preview extends TextureView {
             mPreviewSize = getPreferredPreviewSize(map.getOutputSizes(SurfaceTexture.class), getWidth(), getHeight());
             Log.e(TAG, "setupCamera: best preview size width=" + mPreviewSize.getWidth()
                     + ",height=" + mPreviewSize.getHeight());
-            transformImage(getWidth(), getHeight());
-            // Add permission for camera and let user grant the permission
-            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
 
             //获取视频尺寸大小
             mVideoSize = chooseVideoSize(map.getOutputSizes(MediaRecorder.class));
@@ -378,7 +352,6 @@ public class Camera2Preview extends TextureView {
                     Log.e(TAG, "setupCamera: not have flash or torch");
                 }
             }
-            setupImageReader();
             //调用CameraManger对象打开相机函数
             mCameraManager.openCamera(mCameraId, stateCallback, null);
         } catch (CameraAccessException e) {
@@ -394,8 +367,7 @@ public class Camera2Preview extends TextureView {
         mCameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
         try {
             String[] cameraList = mCameraManager.getCameraIdList();
-            for (int i = 0; i < cameraList.length; i++) {
-                String cameraId = cameraList[i];
+            for (String cameraId : cameraList) {
                 if (TextUtils.equals(cameraId, CAMERA_FONT)) {
                     mCameraId = cameraId;
                     break;
@@ -408,33 +380,6 @@ public class Camera2Preview extends TextureView {
             e.printStackTrace();
         }
     }
-
-
-    /**
-     * 选择图片
-     *
-     * @param width
-     * @param height
-     */
-    private void transformImage(int width, int height) {
-        Matrix matrix = new Matrix();
-        int rotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
-        RectF textureRectF = new RectF(0, 0, width, height);
-        RectF previewRectF = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
-        float centerX = textureRectF.centerX();
-        float centerY = textureRectF.centerY();
-        if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-            previewRectF.offset(centerX - previewRectF.centerX(),
-                    centerY - previewRectF.centerY());
-            matrix.setRectToRect(textureRectF, previewRectF, Matrix.ScaleToFit.FILL);
-            float scale = Math.max((float) width / mPreviewSize.getWidth(),
-                    (float) height / mPreviewSize.getHeight());
-            matrix.postScale(scale, scale, centerX, centerY);
-            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-        }
-        setTransform(matrix);
-    }
-
 
     protected void startBackgroundThread() {
         mBackgroundThread = new HandlerThread("Camera Background");
@@ -469,11 +414,6 @@ public class Camera2Preview extends TextureView {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mCameraManager.unregisterTorchCallback(mTorchCallback);
             }
-        }
-
-        if (null != mImageReader) {
-            mImageReader.close();
-            mImageReader = null;
         }
     }
 
@@ -538,20 +478,6 @@ public class Camera2Preview extends TextureView {
         return mapSizes[0];
     }
 
-    /**
-     * 切换摄像头
-     */
-    public void switchCamera() {
-        if (TextUtils.equals(mCameraId, CAMERA_FONT)) {
-            mCameraId = CAMERA_BACK;
-        } else {
-            mCameraId = CAMERA_FONT;
-        }
-        closeCamera();
-        setupCamera(getWidth(), getHeight());
-    }
-
-
     public boolean toggleVideo() {
         if (mIsRecordingVideo) {
             stopRecordingVideo();
@@ -614,7 +540,6 @@ public class Camera2Preview extends TextureView {
     private File mVideoPath;
 
     private void setUpMediaRecorder() throws IOException {
-//        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         mVideoPath = ensureFile(MEDIA_TYPE_VIDEO);
@@ -623,7 +548,6 @@ public class Camera2Preview extends TextureView {
         mMediaRecorder.setVideoFrameRate(30);
         mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         int rotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
         switch (mSensorOrientation) {
             case SENSOR_ORIENTATION_DEFAULT_DEGREES:
@@ -662,153 +586,6 @@ public class Camera2Preview extends TextureView {
         Toast.makeText(mContext, "Video saved: " + mVideoPath.getAbsolutePath(),
                 Toast.LENGTH_SHORT).show();
         createCameraPreview();
-    }
-
-    /**
-     * 拍照
-     */
-    public void takePicture() {
-        mImageFile = ensureFile(MEDIA_TYPE_IMAGE);
-        mState = STATE_CAPTURE;
-        lockFocus();
-    }
-
-    private void lockFocus() {
-        try {
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-            mCameraCaptureSessions.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-        @Override
-        public void onCaptureProgressed(CameraCaptureSession session, CaptureRequest request, CaptureResult partialResult) {
-            Log.e(TAG, "onCaptureProgressed: ");
-        }
-
-        @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-            capture();
-        }
-    };
-
-    private void capture() {
-        try {
-            final CaptureRequest.Builder mCaptureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            int rotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
-            mCaptureBuilder.addTarget(mImageReader.getSurface());
-            mCaptureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            CameraCaptureSession.CaptureCallback CaptureCallback = new CameraCaptureSession.CaptureCallback() {
-                @Override
-                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                    Toast.makeText(mContext, "Image Saved!", Toast.LENGTH_SHORT).show();
-                    unLockFocus();
-                    updatePreview();
-                    mState = STATE_PREVIEW;
-                }
-            };
-            mCameraCaptureSessions.stopRepeating();
-            mCameraCaptureSessions.capture(mCaptureBuilder.build(), CaptureCallback, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void unLockFocus() {
-        try {
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            //mCameraCaptureSession.capture(mCaptureRequestBuilder.build(), null, mCameraHandler);
-            mCameraCaptureSessions.setRepeatingRequest(mPreviewRequestBuilder.build(), null, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private void setupImageReader() {
-        //2代表ImageReader中最多可以获取两帧图像流
-        mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(),
-                ImageFormat.JPEG, 1);
-        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-            @Override
-            public void onImageAvailable(ImageReader reader) {
-                switch (mState) {
-                    case STATE_PREVIEW:
-                        //这里一定要调用reader.acquireNextImage()和img.close方法否则不会一直回掉了
-                        Image img = reader.acquireNextImage();
-                        if (mIsAddWaterMark) {
-                            try {
-                                //获取图片byte数组
-                                Image.Plane[] planes = img.getPlanes();
-                                ByteBuffer buffer = planes[0].getBuffer();
-                                buffer.rewind();
-                                byte[] data = new byte[buffer.capacity()];
-                                buffer.get(data);
-
-                                //从byte数组得到Bitmap
-                                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                                //得到的图片是我们的预览图片的大小进行一个缩放到水印图片里面可以完全显示
-                                bitmap = ImageUtil.zoomBitmap(bitmap, mWaterMarkPreview.getWidth(),
-                                        mWaterMarkPreview.getHeight());
-                                //图片旋转 后置旋转90度，前置旋转270度
-                                bitmap = BitmapUtils.rotateBitmap(bitmap, mCameraId.equals(CAMERA_BACK) ? 90 : 270);
-                                //文字水印
-                                bitmap = BitmapUtils.drawTextToCenter(mContext, bitmap,
-                                        System.currentTimeMillis() + "", 16, Color.RED);
-                                // 获取到画布
-                                Canvas canvas = mWaterMarkPreview.getHolder().lockCanvas();
-                                if (canvas == null) return;
-                                canvas.drawBitmap(bitmap, 0, 0, new Paint());
-                                mWaterMarkPreview.getHolder().unlockCanvasAndPost(canvas);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        img.close();
-                        break;
-                    case STATE_CAPTURE:
-                        mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
-                        break;
-                }
-            }
-        }, mBackgroundHandler);
-    }
-
-    private File mImageFile;
-    private ImageReader mImageReader;
-
-    private class ImageSaver implements Runnable {
-        private Image mImage;
-
-        private ImageSaver(Image image) {
-            mImage = image;
-        }
-
-        @Override
-        public void run() {
-            ByteBuffer byteBuffer = mImage.getPlanes()[0].getBuffer();
-            byte[] bytes = new byte[byteBuffer.remaining()];
-            byteBuffer.get(bytes);
-            try {
-                FileOutputStream fileOutputStream = null;
-                fileOutputStream = new FileOutputStream(mImageFile);
-                fileOutputStream.write(bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            mImage.close();
-        }
-    }
-
-    public void setWaterMarkPreview(WaterMarkPreview preview) {
-        this.mWaterMarkPreview = preview;
-    }
-
-    public boolean toggleWaterMark() {
-        return (mIsAddWaterMark = !mIsAddWaterMark);
     }
 
     private File ensureFile(int mediaType) {

@@ -47,15 +47,9 @@ public class Camera2Activity extends AppCompatActivity{
     @Override
     protected void onPause() {
         super.onPause();
-        if (mPreview != null) mPreview.onPause();
-    }
-
-    public void switchCamera(View view) {
-        mPreview.switchCamera();
-    }
-
-    public void takePicture(View view) {
-        mPreview.takePicture();
+        if (mPreview != null) {
+            mPreview.onPause();
+        }
     }
 
     public void toggleVideo(View view) {
@@ -63,18 +57,6 @@ public class Camera2Activity extends AppCompatActivity{
             ((Button) view).setText("停止录制视频");
         } else {
             ((Button) view).setText("开始录制视频");
-        }
-    }
-
-    public void toggleWaterMark(View view) {
-        if (mWaterMarkPreview == null) {
-            mWaterMarkPreview = (WaterMarkPreview) findViewById(R.id.camera_watermark_preview);
-            mPreview.setWaterMarkPreview(mWaterMarkPreview);
-        }
-        if (mPreview.toggleWaterMark()) {
-            mWaterMarkPreview.setVisibility(View.VISIBLE);
-        } else {
-            mWaterMarkPreview.setVisibility(View.GONE);
         }
     }
 
