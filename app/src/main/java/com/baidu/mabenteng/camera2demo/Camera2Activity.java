@@ -2,7 +2,6 @@ package com.baidu.mabenteng.camera2demo;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -10,13 +9,10 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 
 import com.baidu.mabenteng.camera2demo.customview.Camera2Preview;
-import com.baidu.mabenteng.camera2demo.customview.WaterMarkPreview;
-import com.baidu.mabenteng.camera2demo.utils.App;
 
 public class Camera2Activity extends AppCompatActivity{
 
     private Camera2Preview mPreview;
-    private WaterMarkPreview mWaterMarkPreview;
 
     public static Intent getJumpIntent(Context context) {
         return new Intent(context, Camera2Activity.class);

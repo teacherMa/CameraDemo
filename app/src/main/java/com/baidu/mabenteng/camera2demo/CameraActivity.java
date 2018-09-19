@@ -259,7 +259,7 @@ public class CameraActivity extends AppCompatActivity implements SurfaceHolder.C
         int bitPerPixel = ImageFormat.getBitsPerPixel(format);
         List<Integer> formats = parameters.getSupportedPictureFormats();
         for (int f : formats) {
-            if(ImageFormat.getBitsPerPixel(f) > bitPerPixel) {
+            if (ImageFormat.getBitsPerPixel(f) > bitPerPixel) {
                 format = f;
                 bitPerPixel = ImageFormat.getBitsPerPixel(f);
             }
@@ -311,41 +311,46 @@ public class CameraActivity extends AppCompatActivity implements SurfaceHolder.C
     }
 
     private void capture() {
-        mCamera.takePicture(new Camera.ShutterCallback() {
+        mCamera.autoFocus(new Camera.AutoFocusCallback() {
             @Override
-            public void onShutter() {
-                Log.e(TAG, "onShutter: I play a shutter sound");
-            }
-        }, new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                if (FileUtils.isEmpty(data)) {
-                    return;
-                }
-                File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "raw_photo", FileUtils.sCameraPhotoSuffix, true);
-                FileUtils.saveFile(outputFile, data);
-            }
-        }, new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                if (FileUtils.isEmpty(data)) {
-                    return;
-                }
-                File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "post_photo", FileUtils.sCameraPhotoSuffix, true);
-                FileUtils.saveFile(outputFile, data);
-            }
-        }, new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                if (FileUtils.isEmpty(data)) {
-                    return;
-                }
-                File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "photo", FileUtils.sCameraPhotoSuffix, true);
-                if (FileUtils.saveFile(outputFile, data)) {
-                    mCamera.startPreview();
-                } else {
-                    mCamera.release();
-                }
+            public void onAutoFocus(boolean success, Camera camera) {
+                mCamera.takePicture(new Camera.ShutterCallback() {
+                    @Override
+                    public void onShutter() {
+                        Log.e(TAG, "onShutter: I play a shutter sound");
+                    }
+                }, new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        if (FileUtils.isEmpty(data)) {
+                            return;
+                        }
+                        File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "raw_photo", FileUtils.sCameraPhotoSuffix, true);
+                        FileUtils.saveFile(outputFile, data);
+                    }
+                }, new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        if (FileUtils.isEmpty(data)) {
+                            return;
+                        }
+                        File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "post_photo", FileUtils.sCameraPhotoSuffix, true);
+                        FileUtils.saveFile(outputFile, data);
+                    }
+                }, new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        if (FileUtils.isEmpty(data)) {
+                            return;
+                        }
+                        File outputFile = FileUtils.getFile(FileUtils.sCameraPhotoPath, "photo", FileUtils.sCameraPhotoSuffix, true);
+                        if (FileUtils.saveFile(outputFile, data)) {
+                            mCamera.startPreview();
+                        } else {
+                            mCamera.release();
+                        }
+                    }
+                });
             }
         });
     }

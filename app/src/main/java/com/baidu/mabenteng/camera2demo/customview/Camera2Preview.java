@@ -119,10 +119,6 @@ public class Camera2Preview extends TextureView {
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
 
-    private boolean mIsAddWaterMark = false;
-    private WaterMarkPreview mWaterMarkPreview;
-
-
     public Camera2Preview(Context context) {
         this(context, null);
     }
